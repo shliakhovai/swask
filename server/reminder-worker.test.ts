@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { sample } from '../tests/fixtures/task'
 import { ReminderWorker } from './reminder-worker'
-import { type ReminderRepository } from './push-repository'
+import type { ReminderRepository } from './push-repository'
 
 const subscription = {
   endpoint: 'https://fcm.googleapis.com/fcm/send/test',

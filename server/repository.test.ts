@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { sample } from '../tests/fixtures/task'
-import { type TaskOperation } from '../src/lib/tasks'
+import type { TaskOperation } from '../src/lib/tasks'
 import { TASK_MIGRATION } from './migrations'
 import { TaskRepository } from './repository'
 

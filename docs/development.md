@@ -18,6 +18,8 @@ npm run test:e2e
 
 `check` includes formatting, ESLint, strict TypeScript and unit tests. Browser tests cover Chromium, Firefox, WebKit and a mobile WebKit viewport. CI installs browser system dependencies automatically.
 
+The server runs TypeScript directly with Node.js 24. Use top-level `import type` for imports containing only types; inline-only type specifiers can retain a runtime module import. ESLint enforces this, and `verbatimModuleSyntax` keeps compiler checks aligned with Node's type stripping.
+
 Husky installs hooks during `npm install`. Pre-commit formats staged files, runs ESLint, type checks and unit tests. Commit messages use `type(scope): summary`, for example `feat(tasks): group tasks by deadline`.
 
 ## Git workflow

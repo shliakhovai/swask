@@ -1,7 +1,7 @@
 import { isDate } from './date'
 import { isReminderTime } from './reminders'
 import { isRecord } from './tasks'
-import { type TaskStorage } from './task-store'
+import type { TaskStorage } from './task-store'
 
 export const REMINDER_KEY = 'swask.reminders.v1'
 export interface ReminderPreferences {

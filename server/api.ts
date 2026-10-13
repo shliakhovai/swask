@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { parseOperations, type PublicConfig } from '../src/lib/sync-protocol.ts'
-import { type Task, type TaskOperation } from '../src/lib/tasks.ts'
+import type { Task, TaskOperation } from '../src/lib/tasks.ts'
 import {
   isPushEndpoint,
   parsePushPreferences,

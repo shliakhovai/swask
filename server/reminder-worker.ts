@@ -1,9 +1,9 @@
 import { zonedMoment } from '../src/lib/reminders.ts'
 import { formatDate } from '../src/lib/date.ts'
-import { type SubscriptionData } from './push-protocol.ts'
-import {
-  type ReminderRepository,
-  type SavedSubscription,
+import type { SubscriptionData } from './push-protocol.ts'
+import type {
+  ReminderRepository,
+  SavedSubscription,
 } from './push-repository.ts'
 
 export type PushSender = (

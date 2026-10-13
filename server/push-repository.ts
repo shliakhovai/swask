@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { isTask, type Task } from '../src/lib/tasks.ts'
-import { type SqlDatabase } from './repository.ts'
+import type { SqlDatabase } from './repository.ts'
 import { parsePushPreferences, type PushPreferences } from './push-protocol.ts'
 
 export interface SavedSubscription extends PushPreferences {

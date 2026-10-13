@@ -1,6 +1,6 @@
 import { reminderStore, useMinute, useReminders } from '../hooks/use-reminders'
 import { dueReminders } from '../lib/reminders'
-import { type Task } from '../lib/tasks'
+import type { Task } from '../lib/tasks'
 import { Icon } from './Icon'
 
 export function ReminderBanner({

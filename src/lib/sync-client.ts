@@ -3,7 +3,7 @@ import {
   isSyncResponse,
   type PublicConfig,
 } from './sync-protocol.ts'
-import { type TaskStore, type TaskStorage } from './task-store.ts'
+import type { TaskStore, TaskStorage } from './task-store.ts'
 
 const CREDENTIAL_KEY = 'swask.sync.key.v1'
 export type SyncStatus =

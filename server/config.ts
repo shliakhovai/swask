@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { type PublicConfig } from '../src/lib/sync-protocol.ts'
+import type { PublicConfig } from '../src/lib/sync-protocol.ts'
 
 export function readConfig(env = process.env) {
   const databaseUrl = env.DATABASE_URL?.trim() ?? ''
