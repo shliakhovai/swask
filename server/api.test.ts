@@ -13,13 +13,42 @@ const dependencies: ApiDependencies = {
   syncKey: key,
   sync: async () => [sample],
 }
-const request = (value: unknown, token = key) =>
+const request = (value: Record<string, unknown>, token = key) =>
   new Request('http://localhost/api/sync', {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
-    body: JSON.stringify(value),
+    body: JSON.stringify({ spaceId: 'test-space', ...value }),
   })
 describe('sync API', () => {
+  it('rejects a stale or missing workspace binding before applying operations', async () => {
+    let applied = false
+    const guarded = {
+      ...dependencies,
+      sync: async () => {
+        applied = true
+        return []
+      },
+    }
+    for (const spaceId of ['previous-database', undefined]) {
+      const response = await handleApi(
+        request({
+          spaceId,
+          operations: [
+            {
+              id: crypto.randomUUID(),
+              taskId: sample.id,
+              at: sample.updatedAt,
+              kind: 'create',
+              task: sample,
+            },
+          ],
+        }),
+        guarded,
+      )
+      expect(response.status).toBe(409)
+      expect(applied).toBe(false)
+    }
+  })
   it('exposes only public configuration and rejects unauthenticated requests', async () => {
     const config = await handleApi(
       new Request('http://localhost/api/config'),

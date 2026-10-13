@@ -76,7 +76,10 @@ export function App() {
           swask<span>↗</span>
         </a>
         <div className="header-actions">
-          <span className={`connection-status ${online ? '' : 'offline'}`}>
+          <span
+            role="status"
+            className={`connection-status ${online ? '' : 'offline'}`}
+          >
             <i />
             {online
               ? offlineReady

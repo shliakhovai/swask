@@ -68,6 +68,44 @@ describe('PostgreSQL sync migration', () => {
       completed: true,
     })
   })
+  it('preserves operation completion times through edits, retries and reopening', async () => {
+    await repository.sync([operation('create')])
+    const completed = {
+      ...operation('update', { completed: true }),
+      at: '2026-10-13T12:00:00.000Z',
+    }
+    const first = await repository.sync([completed])
+    expect(first[0]?.completedAt).toBe(completed.at)
+    const edited = await repository.sync([
+      {
+        ...operation('update', { title: 'Later edit' }),
+        at: '2026-10-14T12:00:00.000Z',
+      },
+    ])
+    expect(edited[0]?.completedAt).toBe(completed.at)
+    expect((await repository.sync([completed]))[0]?.completedAt).toBe(
+      completed.at,
+    )
+    expect(
+      (await repository.sync([operation('update', { completed: false })]))[0]
+        ?.completedAt,
+    ).toBeNull()
+    const next = {
+      ...operation('update', { completed: true }),
+      at: '2026-10-15T12:00:00.000Z',
+    }
+    expect((await repository.sync([next]))[0]?.completedAt).toBe(next.at)
+  })
+  it('preserves a legacy completion date before changing its server timestamp', async () => {
+    await database.query(
+      'INSERT INTO swask_tasks(id, data) VALUES ($1::uuid, $2::jsonb)',
+      [sample.id, JSON.stringify({ ...sample, completed: true })],
+    )
+    const tasks = await repository.sync([
+      operation('update', { title: 'Edited legacy task' }),
+    ])
+    expect(tasks[0]?.completedAt).toBe(sample.updatedAt)
+  })
   it('keeps tombstones when a stale edit or create arrives', async () => {
     await repository.sync([operation('create')])
     await repository.sync([operation('delete')])

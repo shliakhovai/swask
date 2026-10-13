@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { parseOperations, type PublicConfig } from '../src/lib/sync-protocol.ts'
-import { type Task, type TaskOperation } from '../src/lib/tasks.ts'
+import { isRecord, type Task, type TaskOperation } from '../src/lib/tasks.ts'
 
 export const MAX_BODY_BYTES = 1_048_576
 export interface ApiDependencies {
@@ -52,7 +52,17 @@ export async function handleApi(
     return jsonResponse({ error: 'Завеликий запит.' }, 413)
   let operations: TaskOperation[]
   try {
-    operations = parseOperations(JSON.parse(raw))
+    const body: unknown = JSON.parse(raw)
+    if (!isRecord(body)) throw new Error('Invalid sync request')
+    if (body.spaceId !== dependencies.config.spaceId)
+      return jsonResponse(
+        {
+          error:
+            'Простір синхронізації змінився. Перевір під’єднання перед надсиланням задач.',
+        },
+        409,
+      )
+    operations = parseOperations(body)
   } catch {
     return jsonResponse({ error: 'Некоректні дані синхронізації.' }, 400)
   }

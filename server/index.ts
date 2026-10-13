@@ -5,7 +5,7 @@ import {
 } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
-import { type ViteDevServer } from 'vite'
+import type { ViteDevServer } from 'vite'
 import { handleApi, jsonResponse, MAX_BODY_BYTES } from './api.ts'
 import { readConfig } from './config.ts'
 import { createNeonRepository } from './repository.ts'
