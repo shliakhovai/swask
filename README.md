@@ -1,2 +1,16 @@
 # swask
-Swipe your way to productivity 🚀 A Tinder-style task manager — swipe left to complete, right to keep pending, and up to reschedule deadlines.
+
+Задачі у твоєму ритмі. Ця початкова гілка містить український екран привітання, календарні утиліти та інструменти розробки. Список задач, свайпи, офлайн PWA, синхронізація з Neon PostgreSQL і нагадування додаються в наступних PR.
+
+## Запуск
+
+Потрібен Node.js 24.
+
+```sh
+npm install
+npm run dev
+```
+
+Відкрий адресу, яку покаже термінал. Для початкового екрана налаштування зовнішніх сервісів не потрібне.
+
+Деталі: [розробка](docs/development.md), [архітектура](docs/architecture.md), [правила для агентів](AGENTS.md).
