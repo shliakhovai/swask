@@ -4,6 +4,8 @@ swask is a small React + TypeScript application built with Vite. Its two views s
 
 ## Boundaries
 
+Calendar utilities accept dates from `1900-01-01` through `9999-12-31` and reject date arithmetic outside that range with a `RangeError`.
+
 - `src/lib`: calendar and domain logic, with behavior tests.
 - `src/components`: focused UI components.
 - `src/styles`: shared design tokens and responsive styles; no remote fonts or assets.
@@ -18,6 +20,10 @@ Deadlines are optional `YYYY-MM-DD` calendar dates displayed using the user's Uk
 
 The list always shows today, even when it is empty. Overdue tasks come first, future deadlines are ordered, and undated tasks come last. Completion is reversible. Deletion keeps a tombstone so a stale edit cannot recreate a task during future synchronization.
 
+`completedAt` records the transition into completion independently of edits. Older version-1 tasks infer this value from their previous `updatedAt` once during loading; subsequent edits preserve it. Reopening clears it, and completing again starts a new completion timestamp.
+
 ## Swipe rounds
 
 The deck orders active tasks by deadline. Left completes, right skips until the next round without modifying the task, and up opens the 1/3/7-day deadline chooser. Choosing a date persists the update before advancing; cancelling leaves the card in place. A round ends when every active task has been visited, and restarting clears only the in-memory visited set. Touch/mouse pointer gestures, on-screen buttons and arrow keys share the same actions. Completion and deadline changes support undo.
+
+Keyboard focus stays on the card as a round advances. A gesture is bound to the task present at pointer-down so a remotely replaced card cannot receive the previous card's gesture. Postponement choices beyond the supported calendar range are disabled.

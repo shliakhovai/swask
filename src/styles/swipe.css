@@ -61,14 +61,14 @@
   align-items: center;
   gap: 6px;
   background: #f3eee6;
-  color: #81715d;
+  color: #75644f;
   padding: 7px 10px;
   font-size: 10px;
   border-radius: 8px;
 }
 .deadline-tag.late {
   background: #ffe8df;
-  color: #ae563b;
+  color: #99462f;
 }
 .card-spark {
   color: #d58160;
@@ -79,7 +79,7 @@
   min-height: 230px;
 }
 .card-overline {
-  color: #998b7d;
+  color: #796b5d;
   font-size: 8px;
   letter-spacing: 1.9px;
 }
