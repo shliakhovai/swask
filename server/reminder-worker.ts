@@ -57,6 +57,11 @@ export class ReminderWorker {
             preferences.id,
             task,
           )
+          if (revision !== this.revision) {
+            if (reservation === 'claimed')
+              await this.repository.release(preferences.id, task)
+            break
+          }
           if (reservation === 'waiting') {
             failed = true
             continue

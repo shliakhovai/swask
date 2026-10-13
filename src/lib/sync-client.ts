@@ -4,6 +4,7 @@ import {
   type PublicConfig,
 } from './sync-protocol.ts'
 import type { TaskStore, TaskStorage } from './task-store.ts'
+import { isRecord } from './tasks.ts'
 
 export const CREDENTIAL_KEY = 'swask.sync.key.v1'
 export type SyncStatus =
@@ -191,13 +192,14 @@ export class SyncClient {
       throw new Error('Спочатку під’єднай пристрій до свого простору.')
     if (this.tasks.getSnapshot().document.scope !== config.spaceId)
       throw new Error('Простір синхронізації не збігається.')
+    if (!isRecord(value)) throw new Error('Некоректні налаштування нагадувань.')
     const result = await this.request('/api/push/subscription', {
       method,
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${this.key}`,
       },
-      body: JSON.stringify(value),
+      body: JSON.stringify({ ...value, spaceId: config.spaceId }),
     })
     if (
       typeof result !== 'object' ||

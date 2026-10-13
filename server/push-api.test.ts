@@ -24,11 +24,15 @@ describe('push subscription API', () => {
       sync: async () => [],
       push: { save, remove },
     }
-    const request = (method: string, data: unknown, authorized = true) =>
+    const request = (
+      method: string,
+      data: Record<string, unknown>,
+      authorized = true,
+    ) =>
       new Request('http://localhost/api/push/subscription', {
         method,
         headers: authorized ? { authorization: `Bearer ${key}` } : {},
-        body: JSON.stringify(data),
+        body: JSON.stringify({ spaceId: 'space', ...data }),
       })
     expect(
       (
@@ -43,6 +47,21 @@ describe('push subscription API', () => {
       ).status,
     ).toBe(401)
     expect(save).not.toHaveBeenCalled()
+    for (const method of ['POST', 'DELETE']) {
+      const response = await handleApi(
+        request(method, {
+          spaceId: 'different-space',
+          subscription,
+          endpoint: subscription.endpoint,
+          timezone: 'Europe/Kyiv',
+          time: '09:00',
+        }),
+        dependencies,
+      )
+      expect(response.status).toBe(409)
+      expect(save).not.toHaveBeenCalled()
+      expect(remove).not.toHaveBeenCalled()
+    }
     expect(
       (
         await handleApi(

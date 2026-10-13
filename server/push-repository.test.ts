@@ -71,7 +71,10 @@ describe('push delivery persistence', () => {
       push.reserve(id, task),
     ])
     expect(claimed.sort()).toEqual(['claimed', 'waiting'])
+    await push.release(id, task)
+    expect(await push.reserve(id, task)).toBe('claimed')
     await push.delivered(id, task)
+    await push.release(id, task)
     expect(await push.reserve(id, task)).toBe('settled')
     await tasks.sync([
       {

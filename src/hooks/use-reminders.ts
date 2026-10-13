@@ -7,7 +7,7 @@ export const reminderStore = new ReminderStore({
   setItem: (key, value) => localStorage.setItem(key, value),
 })
 window.addEventListener('storage', (event) => {
-  if (event.key === REMINDER_KEY) reminderStore.refresh()
+  if (event.key === REMINDER_KEY || event.key === null) reminderStore.refresh()
 })
 export function useReminders() {
   return useSyncExternalStore(

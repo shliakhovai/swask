@@ -2,12 +2,39 @@ import { createServer } from 'node:http'
 
 // Proxy the production build on a separate origin for each update journey.
 // Only a worker version probe is appended; its real lifecycle code is retained.
-export async function pwaUpdateServer(upstream: string) {
+export async function pwaUpdateServer(
+  upstream: string,
+  api?: (request: Request) => Promise<Response>,
+) {
   let version = 1
   const server = createServer((request, response) => {
     void (async () => {
       const currentVersion = version
       const url = new URL(request.url ?? '/', upstream)
+      if (api && url.pathname.startsWith('/api/')) {
+        const chunks: Buffer[] = []
+        for await (const chunk of request)
+          chunks.push(Buffer.from(chunk as Uint8Array))
+        const headers = new Headers()
+        for (const [key, value] of Object.entries(request.headers)) {
+          if (typeof value === 'string') headers.set(key, value)
+          else if (Array.isArray(value)) headers.set(key, value.join(', '))
+        }
+        const method = request.method ?? 'GET'
+        const result = await api(
+          new Request(url, {
+            method,
+            headers,
+            ...(!['GET', 'HEAD'].includes(method)
+              ? { body: Buffer.concat(chunks).toString() }
+              : {}),
+          }),
+        )
+        response.statusCode = result.status
+        result.headers.forEach((value, key) => response.setHeader(key, value))
+        response.end(Buffer.from(await result.arrayBuffer()))
+        return
+      }
       const result = await fetch(url)
       response.statusCode = result.status
       response.setHeader(

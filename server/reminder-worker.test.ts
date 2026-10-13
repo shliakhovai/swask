@@ -26,11 +26,31 @@ function setup() {
     }),
     delivered: vi.fn(async () => {}),
     retry: vi.fn(async () => {}),
+    release: vi.fn(async (id, task) => {
+      claims.delete(`${id}/${task.id}/${task.deadline}`)
+    }),
     remove: vi.fn(async () => {}),
   }
   return { repo, task, send: vi.fn(async () => {}) }
 }
 describe('background reminders', () => {
+  it('releases a claim and suppresses stale push when invalidated during reservation', async () => {
+    const { repo, task, send } = setup()
+    const worker = new ReminderWorker(repo, send)
+    const reserve = repo.reserve
+    repo.reserve = vi.fn(async (id, current) => {
+      const result = await reserve(id, current)
+      worker.invalidate(true)
+      return result
+    })
+    await worker.tick(new Date('2026-10-13T06:00:00Z'))
+    expect(send).not.toHaveBeenCalled()
+    expect(repo.delivered).not.toHaveBeenCalled()
+    expect(repo.release).toHaveBeenCalledWith('device', task)
+    repo.reserve = reserve
+    await worker.tick(new Date('2026-10-13T06:01:00Z'))
+    expect(send).toHaveBeenCalledTimes(1)
+  })
   it('keeps retrying a pending delivery after its lease expires', async () => {
     const { repo } = setup()
     const reserve = vi

@@ -72,3 +72,7 @@
     margin-left: auto;
   }
 }
+.reminder-recovery {
+  display: grid;
+  gap: 10px;
+}

@@ -3,6 +3,7 @@ import { syncClient, useSync } from '../hooks/use-sync'
 import { reminderStore, useReminders } from '../hooks/use-reminders'
 import { usePwa } from '../hooks/use-pwa'
 import { isReminderTime } from '../lib/reminders'
+import { PushSetupError, savePushOptIn } from '../lib/push-setup'
 import { Icon } from './Icon'
 
 function applicationKey(value: string): Uint8Array<ArrayBuffer> {
@@ -20,7 +21,7 @@ function subscriptionPreferences(subscription: PushSubscription, time: string) {
   }
 }
 export function ReminderSettings() {
-  const { preferences, error: storageError } = useReminders()
+  const { preferences, blocked, error: storageError } = useReminders()
   const { config, connected } = useSync()
   const { offlineReady } = usePwa()
   const [subscription, setSubscription] = useState<PushSubscription | null>(
@@ -39,6 +40,7 @@ export function ReminderSettings() {
     subscription !== null &&
     'Notification' in window &&
     Notification.permission === 'granted'
+  const optedIn = preferences.push || subscription !== null
   useEffect(() => {
     let active = true
     async function restore() {
@@ -49,7 +51,12 @@ export function ReminderSettings() {
         (await registration?.pushManager.getSubscription()) ?? null
       if (!active) return
       setSubscription(existing)
-      if (existing && preferences.push) {
+      if (
+        existing &&
+        preferences.push &&
+        !blocked &&
+        Notification.permission === 'granted'
+      ) {
         await syncClient.pushSubscription(
           'POST',
           subscriptionPreferences(existing, preferences.time),
@@ -77,6 +84,7 @@ export function ReminderSettings() {
     config?.pushEnabled,
     preferences.push,
     preferences.time,
+    blocked,
   ])
   async function enablePush() {
     if (!config?.pushPublicKey) return
@@ -101,14 +109,22 @@ export function ReminderSettings() {
           applicationServerKey: applicationKey(config.pushPublicKey),
         }))
       try {
-        await syncClient.pushSubscription(
-          'POST',
-          subscriptionPreferences(next, preferences.time),
-        )
-        if (!reminderStore.update({ push: true }))
-          throw new Error('Не вдалося зберегти налаштування на пристрої.')
+        await savePushOptIn(next, Boolean(existing), {
+          save: () =>
+            syncClient.pushSubscription(
+              'POST',
+              subscriptionPreferences(next, preferences.time),
+            ),
+          remove: () =>
+            syncClient.pushSubscription('DELETE', { endpoint: next.endpoint }),
+          persist: () => reminderStore.update({ push: true }),
+        })
       } catch (error) {
-        if (!existing) await next.unsubscribe()
+        setSubscription(
+          error instanceof PushSetupError && error.keepSubscription
+            ? next
+            : null,
+        )
         throw error
       }
       setSubscription(next)
@@ -125,19 +141,33 @@ export function ReminderSettings() {
     }
   }
   async function disablePush() {
-    if (!subscription) return
     setBusy(true)
     setError('')
     try {
-      await syncClient.pushSubscription('DELETE', {
-        endpoint: subscription.endpoint,
-      })
-      await subscription.unsubscribe()
-      reminderStore.update({ push: false })
+      let existing = subscription
+      if (!existing) {
+        const registration = await navigator.serviceWorker.getRegistration()
+        existing = (await registration?.pushManager.getSubscription()) ?? null
+      }
+      if (existing) {
+        await syncClient.pushSubscription('DELETE', {
+          endpoint: existing.endpoint,
+        })
+        await existing.unsubscribe()
+      }
       setSubscription(null)
-    } catch {
+      if (!reminderStore.update({ push: false }))
+        throw new Error(
+          reminderStore.getSnapshot().error ??
+            'Не вдалося зберегти налаштування.',
+        )
+    } catch (error) {
       setError(
-        'Не вдалося вимкнути фонові нагадування. Перевір зв’язок і спробуй ще раз.',
+        error instanceof Error &&
+          !(error instanceof TypeError) &&
+          !(error instanceof DOMException)
+          ? error.message
+          : 'Не вдалося вимкнути фонові нагадування. Перевір зв’язок і спробуй ще раз.',
       )
     } finally {
       setBusy(false)
@@ -152,6 +182,7 @@ export function ReminderSettings() {
       <label className="setting-toggle">
         <input
           type="checkbox"
+          disabled={blocked || busy}
           checked={preferences.inApp}
           onChange={(event) =>
             reminderStore.update({ inApp: event.target.checked })
@@ -163,6 +194,7 @@ export function ReminderSettings() {
         Час нагадування
         <input
           type="time"
+          disabled={blocked || busy}
           value={preferences.time}
           onChange={(event) => {
             if (isReminderTime(event.target.value))
@@ -188,16 +220,18 @@ export function ReminderSettings() {
           <p>
             {enabled
               ? 'Нагадування приходитимуть навіть із закритим swask.'
-              : 'Дозволь сповіщення, щоб отримувати нагадування із закритим swask.'}
+              : optedIn
+                ? 'Можеш вимкнути цю підписку або перевірити дозвіл сповіщень у браузері.'
+                : 'Дозволь сповіщення, щоб отримувати нагадування із закритим swask.'}
           </p>
           <button
             className="button secondary"
-            disabled={busy || !navigator.onLine}
-            onClick={() => void (enabled ? disablePush() : enablePush())}
+            disabled={busy || !navigator.onLine || (blocked && !optedIn)}
+            onClick={() => void (optedIn ? disablePush() : enablePush())}
           >
             {busy
               ? 'Зберігаємо…'
-              : enabled
+              : optedIn
                 ? 'Вимкнути push-нагадування'
                 : 'Увімкнути push-нагадування'}
           </button>
@@ -207,6 +241,45 @@ export function ReminderSettings() {
         <p className="form-error" role="alert">
           {error || storageError}
         </p>
+      )}
+      {blocked && (
+        <div className="reminder-recovery">
+          <p>Завантаж копію пошкоджених налаштувань перед скиданням.</p>
+          <button
+            className="button secondary"
+            onClick={() => {
+              const raw = reminderStore.rawData()
+              if (raw === null) {
+                setError('Не вдалося прочитати дані для завантаження.')
+                return
+              }
+              const url = URL.createObjectURL(
+                new Blob([raw], { type: 'application/json' }),
+              )
+              const link = document.createElement('a')
+              link.href = url
+              link.download = 'swask-reminders-recovery.json'
+              link.click()
+              setTimeout(() => URL.revokeObjectURL(url), 1000)
+            }}
+          >
+            Завантажити налаштування нагадувань
+          </button>
+          <button
+            className="button danger"
+            onClick={() => {
+              if (
+                confirm(
+                  'Скинути пошкоджені налаштування нагадувань? Твої задачі залишаться збереженими.',
+                ) &&
+                reminderStore.reset()
+              )
+                setError('')
+            }}
+          >
+            Скинути налаштування нагадувань
+          </button>
+        </div>
       )}
     </section>
   )

@@ -15,6 +15,7 @@ export interface ReminderRepository {
   ): Promise<'claimed' | 'waiting' | 'settled'>
   delivered(subscription: string, task: Task): Promise<void>
   retry(subscription: string, task: Task): Promise<void>
+  release(subscription: string, task: Task): Promise<void>
   remove(id: string): Promise<void>
 }
 export const subscriptionId = (endpoint: string) =>
@@ -83,6 +84,12 @@ export class PushRepository implements ReminderRepository {
   async retry(subscription: string, task: Task) {
     await this.database.query(
       `UPDATE swask_push_deliveries SET locked_until = now() + interval '5 minutes' WHERE subscription_id = $1 AND task_id = $2::uuid AND deadline = $3 AND sent_at IS NULL`,
+      [subscription, task.id, task.deadline],
+    )
+  }
+  async release(subscription: string, task: Task) {
+    await this.database.query(
+      'DELETE FROM swask_push_deliveries WHERE subscription_id = $1 AND task_id = $2::uuid AND deadline = $3 AND sent_at IS NULL',
       [subscription, task.id, task.deadline],
     )
   }

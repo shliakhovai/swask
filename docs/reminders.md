@@ -1,5 +1,11 @@
 # Reminders
 
+Reminder preferences follow the same storage-safety contract as tasks: unreadable data blocks writes, can be downloaded, and is replaced only by an explicit reset. Each edit reads the latest preferences so other tabs' changes are preserved.
+
+Push opt-in saves the server subscription before its local flag. A failed local write compensates with server deletion and browser unsubscription, including pre-existing subscriptions. Failed cleanup keeps a retryable handle and explains how to disable it. Opt-out remains available after notification permission is revoked. Subscription mutations include the expected workspace ID and reject a mismatch before database writes.
+
+The worker rechecks its invalidation revision after reserving a delivery. A stale reservation is released without sending; sent receipts are preserved.
+
 Every device starts with in-app reminders at 09:00 in its local time zone. Settings can change the time and disable in-app reminders. The banner includes incomplete tasks due today or earlier, updates after focus and at most 30 seconds after a minute change, and can be dismissed for the current day. Tasks without deadlines do not produce reminders.
 
 ## Background Web Push

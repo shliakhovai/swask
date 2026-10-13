@@ -21,6 +21,17 @@ const defaults: ReminderPreferences = {
 interface ReminderState {
   preferences: ReminderPreferences
   error: string | null
+  blocked: boolean
+}
+function isPreferences(value: unknown): value is ReminderPreferences {
+  return (
+    isRecord(value) &&
+    value.version === 1 &&
+    typeof value.inApp === 'boolean' &&
+    typeof value.push === 'boolean' &&
+    isReminderTime(value.time) &&
+    (value.dismissedDate === null || isDate(value.dismissedDate))
+  )
 }
 export class ReminderStore {
   private storage: TaskStorage
@@ -33,31 +44,17 @@ export class ReminderStore {
   private read(): ReminderState {
     try {
       const raw = this.storage.getItem(REMINDER_KEY)
-      if (raw === null) return { preferences: defaults, error: null }
+      if (raw === null)
+        return { preferences: defaults, error: null, blocked: false }
       const value: unknown = JSON.parse(raw)
-      if (
-        !isRecord(value) ||
-        value.version !== 1 ||
-        typeof value.inApp !== 'boolean' ||
-        typeof value.push !== 'boolean' ||
-        !isReminderTime(value.time) ||
-        !(value.dismissedDate === null || isDate(value.dismissedDate))
-      )
-        throw new Error('Invalid preferences')
-      return {
-        preferences: {
-          version: 1,
-          inApp: value.inApp,
-          push: value.push,
-          time: value.time,
-          dismissedDate: value.dismissedDate,
-        },
-        error: null,
-      }
+      if (!isPreferences(value)) throw new Error('Invalid preferences')
+      return { preferences: value, error: null, blocked: false }
     } catch {
       return {
-        preferences: defaults,
-        error: 'Не вдалося прочитати налаштування нагадувань.',
+        preferences: this.state?.preferences ?? defaults,
+        error:
+          'Не вдалося прочитати налаштування нагадувань. Збережені дані залишилися недоторканими.',
+        blocked: true,
       }
     }
   }
@@ -68,25 +65,46 @@ export class ReminderStore {
       this.listeners.delete(listener)
     }
   }
-  refresh = () => {
-    this.state = this.read()
+  private emit() {
     for (const listener of this.listeners) listener()
   }
-  update(changes: Partial<Omit<ReminderPreferences, 'version'>>): boolean {
-    const next = { ...this.state.preferences, ...changes }
-    if (!isReminderTime(next.time)) return false
+  refresh = () => {
+    this.state = this.read()
+    this.emit()
+  }
+  private save(preferences: ReminderPreferences): boolean {
     try {
-      this.storage.setItem(REMINDER_KEY, JSON.stringify(next))
-      this.state = { preferences: next, error: null }
-      for (const listener of this.listeners) listener()
+      this.storage.setItem(REMINDER_KEY, JSON.stringify(preferences))
+      this.state = { preferences, error: null, blocked: false }
+      this.emit()
       return true
     } catch {
       this.state = {
         ...this.state,
         error: 'Не вдалося зберегти налаштування нагадувань.',
       }
-      for (const listener of this.listeners) listener()
+      this.emit()
       return false
+    }
+  }
+  update(changes: Partial<Omit<ReminderPreferences, 'version'>>): boolean {
+    this.state = this.read()
+    if (this.state.blocked) {
+      this.emit()
+      return false
+    }
+    const next = { ...this.state.preferences, ...changes }
+    if (!isPreferences(next)) return false
+    return this.save(next)
+  }
+  reset(): boolean {
+    return this.save(defaults)
+  }
+  rawData(): string | null {
+    try {
+      return this.storage.getItem(REMINDER_KEY)
+    } catch {
+      return null
     }
   }
 }

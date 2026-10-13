@@ -10,11 +10,12 @@ export function ReminderBanner({
   tasks: Task[]
   onReview: () => void
 }) {
-  const { preferences } = useReminders()
+  const { preferences, blocked } = useReminders()
   const moment = useMinute()
   const date = moment.slice(0, 10)
   const tasksDue = dueReminders(tasks, date, moment.slice(11), preferences.time)
   if (
+    blocked ||
     !preferences.inApp ||
     preferences.dismissedDate === date ||
     tasksDue.length === 0

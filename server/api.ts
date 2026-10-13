@@ -115,6 +115,12 @@ async function handlePush(
   let data: unknown
   try {
     data = JSON.parse(text)
+    if (!isRecord(data)) throw new Error('Invalid push request')
+    if (data.spaceId !== dependencies.config.spaceId)
+      return jsonResponse(
+        { error: 'Простір синхронізації змінився. Перевір під’єднання.' },
+        409,
+      )
   } catch {
     return jsonResponse({ error: 'Некоректні налаштування нагадувань.' }, 400)
   }
