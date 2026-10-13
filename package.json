@@ -7,9 +7,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "tsx watch --env-file-if-exists=.env server/index.ts",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1",
+    "preview": "node --env-file-if-exists=.env server/index.ts --production",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -19,7 +19,10 @@
     "test:e2e": "playwright test",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "prepare": "husky",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "start": "node --env-file-if-exists=.env server/index.ts --production",
+    "setup": "node scripts/setup-env.mjs",
+    "db:migrate": "node --env-file-if-exists=.env server/migrate.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -29,10 +32,12 @@
     "*.{json,css,html,md,yml,yaml}": "prettier --write"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.9",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.64.0",
     "@types/node": "26.6.5",
@@ -47,6 +52,7 @@
     "lint-staged": "17.6.0",
     "prettier": "3.9.10",
     "sharp": "0.35.5",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.2",
     "vite": "8.3.4",
