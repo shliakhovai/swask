@@ -8,6 +8,7 @@ import { TaskList } from './components/TaskList'
 import { taskStore, useTasks } from './hooks/use-tasks'
 import { useToday } from './hooks/use-today'
 import { usePwa } from './hooks/use-pwa'
+import { useSync, useSyncLifecycle } from './hooks/use-sync'
 import { addDays, formatDate, today } from './lib/date'
 import { type Task } from './lib/tasks'
 
@@ -19,6 +20,8 @@ export function App() {
   const { document: data, error, blocked } = useTasks()
   const current = useToday()
   const { offlineReady } = usePwa()
+  const { status: syncStatus } = useSync()
+  useSyncLifecycle()
   const [editor, setEditor] = useState<{ task: Task | null } | null>(null)
   const [settings, setSettings] = useState(false)
   const [mode, setMode] = useState<'list' | 'swipe'>('list')
@@ -73,11 +76,18 @@ export function App() {
           swask<span>↗</span>
         </a>
         <div className="header-actions">
-          <span className={`connection-status ${online ? '' : 'offline'}`}>
+          <span
+            role="status"
+            className={`connection-status ${online ? '' : 'offline'}`}
+          >
             <i />
             {online
               ? offlineReady
-                ? 'Готовий до офлайн'
+                ? syncStatus === 'synced'
+                  ? 'Усе синхронізовано'
+                  : syncStatus === 'syncing'
+                    ? 'Синхронізація…'
+                    : 'Готовий до офлайн'
                 : 'Твій особистий простір'
               : 'Працюємо офлайн'}
           </span>

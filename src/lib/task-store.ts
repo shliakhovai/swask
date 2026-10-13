@@ -85,6 +85,7 @@ export class TaskStore {
     const current = this.snapshot.document
     return this.save({
       version: 1,
+      scope: current.scope,
       tasks: applyOperation(current.tasks, operation),
       pending: [...current.pending, operation],
     })
@@ -130,6 +131,26 @@ export class TaskStore {
   }
   reset(): boolean {
     return this.save(EMPTY_DOCUMENT)
+  }
+  acceptRemote(tasks: Task[], acknowledged: string[], scope: string): boolean {
+    this.snapshot = this.read()
+    if (this.snapshot.blocked) {
+      this.emit()
+      return false
+    }
+    const document = this.snapshot.document
+    if (document.scope !== null && document.scope !== scope)
+      throw new Error(
+        'Цей пристрій прив’язаний до іншого простору синхронізації.',
+      )
+    const received = new Set(acknowledged)
+    const pending = document.pending.filter(
+      (operation) => !received.has(operation.id),
+    )
+    const merged = pending.reduce(applyOperation, tasks)
+    return this.save(
+      parseDocument({ version: 1, tasks: merged, pending, scope }),
+    )
   }
   rawData(): string | null {
     try {

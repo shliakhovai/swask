@@ -30,12 +30,14 @@ export interface TaskDocument {
   version: 1
   tasks: Task[]
   pending: TaskOperation[]
+  scope: string | null
 }
 
 export const EMPTY_DOCUMENT: TaskDocument = {
   version: 1,
   tasks: [],
   pending: [],
+  scope: null,
 }
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -128,7 +130,18 @@ export function parseDocument(value: unknown): TaskDocument {
     new Set(pending.map((op) => op.id)).size !== pending.length
   )
     throw new Error('Збережені дані містять дублікати.')
-  return { version: 1, tasks, pending }
+  if (
+    value.scope !== undefined &&
+    value.scope !== null &&
+    typeof value.scope !== 'string'
+  )
+    throw new Error('Некоректний простір синхронізації.')
+  return {
+    version: 1,
+    tasks,
+    pending,
+    scope: typeof value.scope === 'string' ? value.scope : null,
+  }
 }
 export function applyOperation(
   tasks: Task[],

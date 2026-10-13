@@ -1,6 +1,6 @@
 # Architecture
 
-swask is a small React + TypeScript application built with Vite. Its two views share the same tasks: a deadline-grouped list and a swipe deck. The interface is Ukrainian, light, keyboard accessible and responsive.
+swask is a small React + TypeScript application built with Vite and a Node.js 24 server. Its two views share the same tasks: a deadline-grouped list and a swipe deck. The interface is Ukrainian, light, keyboard accessible and responsive. See [offline/PWA](pwa.md), [Neon synchronization](sync.md) and [deployment](deployment.md) for their contracts.
 
 ## Boundaries
 
