@@ -2,7 +2,7 @@
 
 The production build contains a web manifest, maskable/regular PNG icons, an Apple touch icon and a Workbox service worker. All application assets are local and precached; navigation falls back to the cached application shell. API requests are excluded from navigation caching. No fonts, scripts or artwork depend on an external CDN.
 
-After one successful online visit and service-worker activation, swask opens and reloads offline. Tasks can be created, edited, completed, deleted and postponed without a network. Local task writes do not depend on the worker. Pending synchronization operations stay on the device until the server acknowledges them.
+After one successful online visit and service-worker activation, swask opens and reloads offline. Tasks can be created, edited, completed, deleted and postponed without a network. Local task writes do not depend on the worker. This PWA branch records pending operations locally for the later synchronization feature; it has no sync client or server yet, so these operations cannot be acknowledged or removed here.
 
 ## Local verification
 
@@ -17,8 +17,8 @@ The browser's installation menu works where supported. Chromium may expose a one
 
 ## Updates and limits
 
-Updates ask before activating; the update button stays disabled while a task editor or settings dialog is open. Changes are already persisted before the page can reload. Browsers may evict local storage and caches; private browsing can limit persistence. Cloud synchronization provides a second copy when configured.
+Updates ask before activating; the update button stays disabled while a task editor or settings dialog is open. Changes are already persisted before the page can reload. Browsers may evict local storage and caches; private browsing can limit persistence. A cloud backup is planned in the following synchronization PR and is not available in this PWA branch.
 
-`npm run icons` regenerates the committed PNG icons from `public/icon.svg`. End-to-end tests activate the actual production worker, disconnect the browser, reload and edit a task.
+`npm run icons` regenerates the committed PNG icons from `public/icon.svg`. End-to-end tests activate the actual production worker, disconnect the browser, reload and edit a task. The update journey serves two revisions of the built worker on an isolated local origin and verifies the waiting/activation/reload flow with dialogs open and saved tasks intact.
 
 References: [Vite PWA injectManifest](https://vite-pwa-org.netlify.app/guide/inject-manifest), [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API).
