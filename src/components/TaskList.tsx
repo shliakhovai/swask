@@ -7,6 +7,7 @@ export function TaskList({
   current,
   completed,
   selectedDate,
+  disabled,
   onEdit,
   onToggle,
   onAdd,
@@ -15,6 +16,7 @@ export function TaskList({
   current: string
   completed: boolean
   selectedDate: string | null
+  disabled: boolean
   onEdit: (task: Task) => void
   onToggle: (task: Task) => void
   onAdd: () => void
@@ -113,8 +115,8 @@ export function TaskList({
           )}
         </section>
       ))}
-      {tasks.length === 0 && !completed && (
-        <button className="add-empty" onClick={onAdd}>
+      {tasks.length === 0 && !completed && !selectedDate && (
+        <button className="add-empty" disabled={disabled} onClick={onAdd}>
           <Icon name="plus" />
           Додай першу задачу<span>З чогось маленького починається велике.</span>
         </button>

@@ -138,11 +138,11 @@
   text-decoration: none;
 }
 .primary {
-  background: var(--accent);
+  background: var(--accent-dark);
   color: #fff;
 }
 .primary:hover {
-  background: var(--accent-dark);
+  background: #a63216;
 }
 .secondary {
   background: var(--paper);
@@ -348,7 +348,7 @@
   margin-left: 6px;
 }
 .task-link {
-  color: #8a8074;
+  color: #776d62;
 }
 .is-complete .task-title {
   text-decoration: line-through;
@@ -400,7 +400,7 @@
   width: 100%;
   font-size: 11px;
   margin-top: 3px;
-  color: #967b55;
+  color: #7a613f;
 }
 .sidebar {
   padding-top: 1px;
@@ -433,7 +433,7 @@
 }
 .pace-card p {
   font-size: 12px;
-  color: #748063;
+  color: #626e52;
   line-height: 1.7;
 }
 .pace-stats {
@@ -452,7 +452,7 @@
 }
 .pace-stats span {
   font-size: 10px;
-  color: #758161;
+  color: #626e52;
 }
 .pace-track {
   height: 5px;
@@ -471,7 +471,7 @@
   display: block;
   margin-top: 12px;
   font-size: 10px;
-  color: #748063;
+  color: #626e52;
 }
 .quiet-card {
   padding: 25px 16px;
@@ -527,7 +527,7 @@
   gap: 7px;
   justify-content: center;
   font-size: 10px;
-  color: #8f877b;
+  color: var(--muted);
 }
 .footer {
   display: flex;
@@ -536,7 +536,7 @@
   margin-top: 44px;
   padding-top: 22px;
   border-top: 1px solid var(--line);
-  color: #938b7f;
+  color: var(--muted);
   font-size: 10px;
 }
 .modal {
@@ -578,7 +578,7 @@
   font-weight: 550;
 }
 .optional {
-  color: #9c9285;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 400;
   margin-left: 7px;
@@ -599,7 +599,7 @@ select {
 }
 input::placeholder,
 textarea::placeholder {
-  color: #a69b8d;
+  color: var(--muted);
   font-size: 13px;
 }
 textarea {
