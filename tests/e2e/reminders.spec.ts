@@ -54,12 +54,9 @@ test('receives a simulated push in the actual production service worker', async 
   browserName,
 }) => {
   test.skip(
-    browserName !== 'chromium' || process.platform === 'darwin',
-    'The real-worker notification check runs in Chromium on Linux CI; macOS headless blocks notification permissions. No provider is contacted.',
+    browserName !== 'chromium',
+    'CDP push delivery is Chromium-only; the native display boundary is mocked and no provider is contacted.',
   )
-  await context.grantPermissions(['notifications'], {
-    origin: 'http://127.0.0.1:4173',
-  })
   const session = await context.newCDPSession(page)
   let registrationId: string | undefined
   session.on(
@@ -81,13 +78,27 @@ test('receives a simulated push in the actual production service worker', async 
   )
   await session.send('ServiceWorker.enable')
   await page.goto('/')
-  expect(await page.evaluate(() => Notification.permission)).toBe('granted')
   await expect
     .poll(() =>
       page.evaluate(() => Boolean(navigator.serviceWorker.controller)),
     )
     .toBe(true)
   await expect.poll(() => registrationId).toBeTruthy()
+  const worker = context.serviceWorkers()[0]
+  if (!worker) throw new Error('Production service worker is missing')
+  await worker.evaluate(() => {
+    const scope = self as unknown as ServiceWorkerGlobalScope & {
+      capturedNotifications: { title: string; body: string; tag: string }[]
+    }
+    scope.capturedNotifications = []
+    scope.registration.showNotification = async (title, options) => {
+      scope.capturedNotifications.push({
+        title,
+        body: options?.body ?? '',
+        tag: options?.tag ?? '',
+      })
+    }
+  })
   await session.send('ServiceWorker.deliverPushMessage', {
     origin: 'http://127.0.0.1:4173',
     registrationId: registrationId!,
@@ -99,14 +110,17 @@ test('receives a simulated push in the actual production service worker', async 
   })
   await expect
     .poll(() =>
-      page.evaluate(async () =>
-        (await (await navigator.serviceWorker.ready).getNotifications()).map(
-          (notification) => ({
-            title: notification.title,
-            body: notification.body,
-            tag: notification.tag,
-          }),
-        ),
+      worker.evaluate(
+        () =>
+          (
+            self as unknown as {
+              capturedNotifications: {
+                title: string
+                body: string
+                tag: string
+              }[]
+            }
+          ).capturedNotifications,
       ),
     )
     .toEqual([
@@ -116,10 +130,4 @@ test('receives a simulated push in the actual production service worker', async 
         tag: 'swask-push-test',
       },
     ])
-  await page.evaluate(async () => {
-    for (const notification of await (
-      await navigator.serviceWorker.ready
-    ).getNotifications())
-      notification.close()
-  })
 })

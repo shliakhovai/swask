@@ -24,6 +24,6 @@ Clicking a notification focuses an existing application window and returns to th
 
 ## Verification
 
-Unit tests cover time zones/DST, preferences, task filtering, retry leases, cache invalidation, expired subscriptions and authorization. PGlite runs the real delivery-table SQL. Browser tests check time selection and persistent dismissal in all supported test browsers. A Chromium protocol test exercises the production worker's push handler on Linux CI without contacting a provider; macOS headless browsers deny notification permission, so that check is skipped locally. Complete an end-to-end test with your real Neon database and subscribed device after supplying credentials.
+Unit tests cover time zones/DST, preferences, task filtering, retry leases, cache invalidation, expired subscriptions and authorization. PGlite runs the real delivery-table SQL. Browser tests check time selection and persistent dismissal in all supported test browsers. A Chromium protocol test delivers a push event into the actual production service worker and mocks only the native notification display API, since automated browser profiles deny notification permission. No provider is contacted. Complete an end-to-end test with your real Neon database and subscribed device after supplying credentials.
 
 References: [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), [Web Push on iOS/iPadOS](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/), [web-push library](https://github.com/web-push-libs/web-push).
