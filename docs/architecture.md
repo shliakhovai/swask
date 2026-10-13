@@ -4,6 +4,8 @@ swask is a small React + TypeScript application built with Vite. Its two views s
 
 ## Boundaries
 
+Calendar utilities accept dates from `1900-01-01` through `9999-12-31` and reject date arithmetic outside that range with a `RangeError`.
+
 - `src/lib`: calendar and domain logic, with behavior tests.
 - `src/components`: focused UI components.
 - `src/styles`: shared design tokens and responsive styles; no remote fonts or assets.
