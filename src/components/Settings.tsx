@@ -1,11 +1,37 @@
 import { taskStore, useTasks } from '../hooks/use-tasks'
+import { usePwa } from '../hooks/use-pwa'
+import { pwa } from '../lib/pwa'
 import { Modal } from './Modal'
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const { blocked } = useTasks()
+  const { installable, installed, offlineReady } = usePwa()
   return (
     <Modal title="Налаштування" onClose={onClose}>
       <div className="settings-content">
+        <section className="setting-section">
+          <h3>На твоєму пристрої</h3>
+          <p>
+            {offlineReady
+              ? 'swask готовий до запуску без інтернету.'
+              : 'Офлайн-запуск стане доступним після першого відкриття готової версії застосунку.'}
+          </p>
+          {installed ? (
+            <p>Застосунок установлено.</p>
+          ) : installable ? (
+            <button
+              className="button secondary"
+              onClick={() => void pwa.install()}
+            >
+              Встановити swask
+            </button>
+          ) : (
+            <p className="field-hint">
+              На iPhone/iPad: Поділитися → На початковий екран. На інших
+              пристроях — «Встановити застосунок» у меню браузера.
+            </p>
+          )}
+        </section>
         <p>
           Твої задачі зберігаються в цьому браузері й доступні без інтернету.
         </p>

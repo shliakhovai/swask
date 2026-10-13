@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './components/Icon'
+import { PwaNotice } from './components/PwaNotice'
 import { Settings } from './components/Settings'
 import { SwipeDeck } from './components/SwipeDeck'
 import { TaskEditor } from './components/TaskEditor'
 import { TaskList } from './components/TaskList'
 import { taskStore, useTasks } from './hooks/use-tasks'
 import { useToday } from './hooks/use-today'
+import { usePwa } from './hooks/use-pwa'
 import { addDays, formatDate, today } from './lib/date'
 import { type Task } from './lib/tasks'
 
@@ -16,6 +18,7 @@ interface Toast {
 export function App() {
   const { document: data, error, blocked } = useTasks()
   const current = useToday()
+  const { offlineReady } = usePwa()
   const [editor, setEditor] = useState<{ task: Task | null } | null>(null)
   const [settings, setSettings] = useState(false)
   const [mode, setMode] = useState<'list' | 'swipe'>('list')
@@ -70,7 +73,11 @@ export function App() {
         <div className="header-actions">
           <span className={`connection-status ${online ? '' : 'offline'}`}>
             <i />
-            {online ? 'Твій особистий простір' : 'Працюємо офлайн'}
+            {online
+              ? offlineReady
+                ? 'Готовий до офлайн'
+                : 'Твій особистий простір'
+              : 'Працюємо офлайн'}
           </span>
           <button
             className="icon-button settings-button"
@@ -101,6 +108,7 @@ export function App() {
           <span>{formatDate(current, { year: 'numeric' })}</span>
         </div>
       </section>
+      <PwaNotice busy={editor !== null || settings} />
       {error && (
         <div className="error-banner" role="alert">
           {error}
