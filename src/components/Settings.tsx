@@ -2,6 +2,7 @@ import { taskStore, useTasks } from '../hooks/use-tasks'
 import { usePwa } from '../hooks/use-pwa'
 import { pwa } from '../lib/pwa'
 import { Modal } from './Modal'
+import { SyncSettings } from './SyncSettings'
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const { blocked } = useTasks()
@@ -9,6 +10,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Налаштування" onClose={onClose}>
       <div className="settings-content">
+        <SyncSettings />
         <section className="setting-section">
           <h3>На твоєму пристрої</h3>
           <p>

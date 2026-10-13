@@ -1,0 +1,21 @@
+.setting-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.sync-form {
+  display: grid;
+  gap: 13px;
+}
+.sync-form label {
+  font-size: 12px;
+}
+.sync-form .button {
+  justify-self: start;
+}
