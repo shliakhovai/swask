@@ -19,4 +19,12 @@ describe('calendar dates', () => {
     expect(postponeDate('2026-10-20', 7, '2026-10-13')).toBe('2026-10-27')
     expect(postponeDate(null, 1, '2026-10-13')).toBe('2026-10-14')
   })
+  it('rejects results outside the supported calendar range', () => {
+    expect(addDays('9999-12-30', 1)).toBe('9999-12-31')
+    expect(() => addDays('9999-12-31', 1)).toThrow(RangeError)
+    expect(() => addDays('1900-01-01', -1)).toThrow(RangeError)
+    expect(() => addDays('2026-02-29', 1)).toThrow(RangeError)
+    expect(() => addDays('2026-10-13', 0.5)).toThrow(RangeError)
+    expect(() => postponeDate('9999-12-31', 7)).toThrow(RangeError)
+  })
 })
