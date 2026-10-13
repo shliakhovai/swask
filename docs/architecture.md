@@ -25,3 +25,5 @@ The list always shows today, even when it is empty. Overdue tasks come first, fu
 ## Swipe rounds
 
 The deck orders active tasks by deadline. Left completes, right skips until the next round without modifying the task, and up opens the 1/3/7-day deadline chooser. Choosing a date persists the update before advancing; cancelling leaves the card in place. A round ends when every active task has been visited, and restarting clears only the in-memory visited set. Touch/mouse pointer gestures, on-screen buttons and arrow keys share the same actions. Completion and deadline changes support undo.
+
+Keyboard focus stays on the card as a round advances. A gesture is bound to the task present at pointer-down so a remotely replaced card cannot receive the previous card's gesture. Postponement choices beyond the supported calendar range are disabled.
