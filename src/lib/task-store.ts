@@ -97,6 +97,7 @@ export class TaskStore {
       createdAt: at,
       updatedAt: at,
       completed: false,
+      completedAt: null,
       deleted: false,
     }
     return this.commit({
