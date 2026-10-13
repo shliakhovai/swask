@@ -44,7 +44,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
               className="button secondary"
               onClick={() => {
                 const raw = taskStore.rawData()
-                if (!raw) return
+                if (raw === null) return
                 const url = URL.createObjectURL(
                   new Blob([raw], { type: 'application/json' }),
                 )
@@ -52,7 +52,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
                 a.href = url
                 a.download = 'swask-recovery.json'
                 a.click()
-                URL.revokeObjectURL(url)
+                setTimeout(() => URL.revokeObjectURL(url), 1000)
               }}
             >
               Завантажити дані

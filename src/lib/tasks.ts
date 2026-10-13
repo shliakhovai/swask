@@ -9,6 +9,7 @@ export interface TaskDraft {
 export interface Task extends TaskDraft {
   id: string
   completed: boolean
+  completedAt?: string | null
   deleted: boolean
   createdAt: string
   updatedAt: string
@@ -85,6 +86,9 @@ export function isTask(value: unknown): value is Task {
     isId(value.id) &&
     isInstant(value.createdAt) &&
     isInstant(value.updatedAt) &&
+    (value.completedAt === undefined ||
+      value.completedAt === null ||
+      isInstant(value.completedAt)) &&
     typeof value.deleted === 'boolean' &&
     Object.keys(validators).every((key) => validators[key]!(value[key]))
   )
@@ -116,7 +120,10 @@ export function parseDocument(value: unknown): TaskDocument {
     !value.pending.every(isOperation)
   )
     throw new Error('Некоректний формат збережених задач.')
-  const tasks = value.tasks as Task[]
+  const tasks = (value.tasks as Task[]).map((task) => ({
+    ...task,
+    completedAt: completionTime(task),
+  }))
   const pending = value.pending as TaskOperation[]
   if (
     new Set(tasks.map((task) => task.id)).size !== tasks.length ||
@@ -143,13 +150,30 @@ export function applyOperation(
   if (operation.kind === 'create')
     return tasks.some((task) => task.id === operation.taskId)
       ? tasks
-      : [...tasks, operation.task]
+      : [
+          ...tasks,
+          { ...operation.task, completedAt: completionTime(operation.task) },
+        ]
   return tasks.map((task) => {
     if (task.id !== operation.taskId || task.deleted) return task
     if (operation.kind === 'delete')
       return { ...task, deleted: true, updatedAt: operation.at }
-    return { ...task, ...operation.changes, updatedAt: operation.at }
+    const completedAt =
+      operation.changes.completed === false
+        ? null
+        : operation.changes.completed === true && !task.completed
+          ? operation.at
+          : completionTime(task)
+    return {
+      ...task,
+      ...operation.changes,
+      completedAt,
+      updatedAt: operation.at,
+    }
   })
+}
+export function completionTime(task: Task): string | null {
+  return task.completed ? (task.completedAt ?? task.updatedAt) : null
 }
 export function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort(

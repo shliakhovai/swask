@@ -26,7 +26,9 @@ export function App() {
   const [settings, setSettings] = useState(false)
   const [mode, setMode] = useState<'list' | 'swipe'>('list')
   const [completed, setCompleted] = useState(false)
-  const [dateFilter, setDateFilter] = useState<string | null>(null)
+  const [selectedDate, setDateFilter] = useState<string | null>(null)
+  const dateFilter =
+    selectedDate && selectedDate >= current ? selectedDate : null
   const [toast, setToast] = useState<Toast | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
   useEffect(() => {
@@ -47,7 +49,7 @@ export function App() {
   const active = visible.filter((task) => !task.completed)
   const done = visible.filter((task) => task.completed)
   const doneToday = done.filter(
-    (task) => today(new Date(task.updatedAt)) === current,
+    (task) => today(new Date(task.completedAt ?? task.updatedAt)) === current,
   ).length
   const filtered = (completed ? done : active).filter(
     (task) => !dateFilter || task.deadline === dateFilter,
@@ -226,6 +228,7 @@ export function App() {
                 current={current}
                 selectedDate={dateFilter}
                 completed={completed}
+                disabled={blocked}
                 onEdit={(task) => setEditor({ task })}
                 onToggle={toggle}
                 onAdd={() => setEditor({ task: null })}
