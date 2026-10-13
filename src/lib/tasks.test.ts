@@ -77,4 +77,65 @@ describe('tasks', () => {
       parseDocument({ version: 1, tasks: [sample, sample], pending: [] }),
     ).toThrow()
   })
+  it('preserves completion time across edits and starts a new time after reopening', () => {
+    const update = (
+      tasks: Task[],
+      changes: { completed?: boolean; title?: string },
+      at: string,
+    ) =>
+      applyOperation(tasks, {
+        id: 'op',
+        taskId: sample.id,
+        at,
+        kind: 'update',
+        changes,
+      })
+    const completed = update(
+      [sample],
+      { completed: true },
+      '2026-10-13T12:00:00.000Z',
+    )
+    const edited = update(
+      completed,
+      { title: 'New title' },
+      '2026-10-14T12:00:00.000Z',
+    )
+    expect(edited[0]?.completedAt).toBe('2026-10-13T12:00:00.000Z')
+    const repeated = update(
+      edited,
+      { completed: true },
+      '2026-10-15T12:00:00.000Z',
+    )
+    expect(repeated[0]?.completedAt).toBe(completed[0]?.completedAt)
+    const reopened = update(
+      repeated,
+      { completed: false },
+      '2026-10-16T12:00:00.000Z',
+    )
+    expect(reopened[0]?.completedAt).toBeNull()
+    expect(
+      update(reopened, { completed: true }, '2026-10-17T12:00:00.000Z')[0]
+        ?.completedAt,
+    ).toBe('2026-10-17T12:00:00.000Z')
+  })
+  it('normalizes older completion timestamps before an unrelated edit', () => {
+    const legacy = { ...sample, completed: true }
+    const document = parseDocument({ version: 1, tasks: [legacy], pending: [] })
+    expect(document.tasks[0]?.completedAt).toBe(sample.updatedAt)
+    const edited = applyOperation(document.tasks, {
+      id: 'op',
+      taskId: sample.id,
+      at: '2026-10-14T12:00:00.000Z',
+      kind: 'update',
+      changes: { title: 'Later edit' },
+    })
+    expect(edited[0]?.completedAt).toBe(sample.updatedAt)
+    expect(() =>
+      parseDocument({
+        version: 1,
+        tasks: [{ ...sample, completedAt: 'invalid' }],
+        pending: [],
+      }),
+    ).toThrow()
+  })
 })

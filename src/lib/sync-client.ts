@@ -5,7 +5,7 @@ import {
 } from './sync-protocol.ts'
 import type { TaskStore, TaskStorage } from './task-store.ts'
 
-const CREDENTIAL_KEY = 'swask.sync.key.v1'
+export const CREDENTIAL_KEY = 'swask.sync.key.v1'
 export type SyncStatus =
   'local' | 'disconnected' | 'syncing' | 'synced' | 'offline' | 'error'
 interface SyncState {
@@ -47,6 +47,30 @@ export class SyncClient {
     this.listeners.add(listener)
     return () => {
       this.listeners.delete(listener)
+    }
+  }
+  refreshCredentials(): boolean {
+    try {
+      const key = this.storage.getItem(CREDENTIAL_KEY) ?? ''
+      if (key === this.key) return false
+      this.generation++
+      this.key = key
+      this.update({
+        connected: Boolean(key) && Boolean(this.state.config?.syncEnabled),
+        status: key ? 'offline' : 'disconnected',
+        lastSyncedAt: null,
+        error: null,
+      })
+      return true
+    } catch {
+      this.generation++
+      this.key = ''
+      this.update({
+        connected: false,
+        status: 'error',
+        error: 'Не вдалося прочитати ключ на пристрої.',
+      })
+      return false
     }
   }
   private update(changes: Partial<SyncState>) {
@@ -115,12 +139,14 @@ export class SyncClient {
     const previous = this.key
     this.key = key.trim()
     this.generation++
+    const generation = this.generation
     if (this.key.length < 16) {
       this.key = previous
       this.update({ error: 'Ключ має містити щонайменше 16 символів.' })
       return false
     }
     const success = await this.sync()
+    if (generation !== this.generation) return false
     if (!success) {
       this.key = previous
       return false
@@ -214,7 +240,7 @@ export class SyncClient {
             'content-type': 'application/json',
             authorization: `Bearer ${this.key}`,
           },
-          body: JSON.stringify({ operations }),
+          body: JSON.stringify({ spaceId: config.spaceId, operations }),
         })
         if (generation !== this.generation) return false
         const ids = new Set(operations.map((operation) => operation.id))

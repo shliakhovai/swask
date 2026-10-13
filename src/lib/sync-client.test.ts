@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SyncClient } from './sync-client'
+import { CREDENTIAL_KEY, SyncClient } from './sync-client'
 import { TaskStore, type TaskStorage } from './task-store'
 import { applyOperation, type Task, type TaskOperation } from './tasks'
 
@@ -30,9 +30,12 @@ function cloud() {
   const receipts = new Set<string>()
   const fetcher: typeof fetch = async (input, init) => {
     if (String(input) === '/api/config') return Response.json(config)
-    const operations: TaskOperation[] = JSON.parse(
-      String(init?.body),
-    ).operations
+    const body = JSON.parse(String(init?.body)) as {
+      spaceId: string
+      operations: TaskOperation[]
+    }
+    expect(body.spaceId).toBe(config.spaceId)
+    const operations = body.operations
     for (const operation of operations) {
       if (!receipts.has(operation.id)) {
         tasks = applyOperation(tasks, operation)
@@ -128,5 +131,88 @@ describe('device synchronization', () => {
     await client.initialize()
     expect(await client.connect(key)).toBe(false)
     expect(server.getTasks()).toHaveLength(0)
+  })
+  it('keeps pending edits when a database changes behind cached configuration', async () => {
+    const saved = storage()
+    const store = new TaskStore(saved)
+    let spaceId = config.spaceId
+    let remote: Task[] = []
+    const fetcher: typeof fetch = async (input, init) => {
+      if (String(input) === '/api/config')
+        return Response.json({ ...config, spaceId })
+      const body = JSON.parse(String(init?.body)) as {
+        spaceId: string
+        operations: TaskOperation[]
+      }
+      if (body.spaceId !== spaceId)
+        return Response.json(
+          { error: 'Простір синхронізації змінився.' },
+          { status: 409 },
+        )
+      remote = body.operations.reduce(applyOperation, remote)
+      return Response.json({
+        tasks: remote,
+        spaceId,
+        acknowledged: body.operations.map((operation) => operation.id),
+      })
+    }
+    const client = new SyncClient(store, saved, fetcher)
+    await client.initialize()
+    expect(await client.connect(key)).toBe(true)
+    spaceId = 'new-database'
+    store.create(draft)
+    expect(await client.sync()).toBe(false)
+    expect(remote).toHaveLength(0)
+    expect(store.getSnapshot().document.pending).toHaveLength(1)
+    expect(store.getSnapshot().document.scope).toBe(config.spaceId)
+  })
+  it('propagates saved credentials and disconnects another client on the same device', async () => {
+    const saved = storage()
+    const store = new TaskStore(saved)
+    const server = cloud()
+    let requests = 0
+    const fetcher: typeof fetch = async (input, init) => {
+      if (String(input) === '/api/sync') requests++
+      return server.fetcher(input, init)
+    }
+    const first = new SyncClient(store, saved, fetcher)
+    const second = new SyncClient(store, saved, fetcher)
+    await first.initialize()
+    await second.initialize()
+    await first.connect(key)
+    expect(second.refreshCredentials()).toBe(true)
+    expect(await second.sync()).toBe(true)
+    expect(first.disconnect()).toBe(true)
+    expect(second.refreshCredentials()).toBe(true)
+    const before = requests
+    store.create(draft)
+    expect(await second.sync()).toBe(false)
+    expect(requests).toBe(before)
+    expect(second.getSnapshot().connected).toBe(false)
+  })
+  it('does not restore an old key after another tab disconnects an in-flight connection', async () => {
+    const saved = storage()
+    saved.setItem(CREDENTIAL_KEY, key)
+    const store = new TaskStore(saved)
+    store.create(draft)
+    const server = cloud()
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const fetcher: typeof fetch = async (input, init) => {
+      if (String(input) === '/api/sync') await gate
+      return server.fetcher(input, init)
+    }
+    const client = new SyncClient(store, saved, fetcher)
+    await client.initialize()
+    const connecting = client.connect(key)
+    saved.setItem(CREDENTIAL_KEY, '')
+    client.refreshCredentials()
+    release()
+    expect(await connecting).toBe(false)
+    expect(await client.sync()).toBe(false)
+    expect(client.getSnapshot().connected).toBe(false)
+    expect(store.getSnapshot().document.pending).toHaveLength(1)
   })
 })

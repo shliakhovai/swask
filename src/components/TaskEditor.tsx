@@ -131,13 +131,16 @@ export function TaskEditor({
               type="button"
               aria-label="Видалити задачу"
               onClick={() => {
-                if (
-                  window.confirm('Видалити цю задачу?') &&
-                  taskStore.delete(task.id)
-                ) {
-                  onSaved('Задачу видалено')
-                  onClose()
+                if (!window.confirm('Видалити цю задачу?')) return
+                if (!taskStore.delete(task.id)) {
+                  setError(
+                    taskStore.getSnapshot().error ??
+                      'Не вдалося видалити задачу.',
+                  )
+                  return
                 }
+                onSaved('Задачу видалено')
+                onClose()
               }}
             >
               <Icon name="trash" />

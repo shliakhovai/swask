@@ -18,8 +18,13 @@ export function isDate(value: unknown): value is string {
 }
 
 export function addDays(date: string, days: number): string {
+  if (!isDate(date) || !Number.isSafeInteger(days))
+    throw new RangeError('Некоректна календарна дата або кількість днів.')
   const [year, month, day] = date.split('-').map(Number)
-  return today(new Date(year!, month! - 1, day! + days, 12))
+  const result = today(new Date(year!, month! - 1, day! + days, 12))
+  if (!isDate(result))
+    throw new RangeError('Дата має бути між 1900-01-01 та 9999-12-31.')
+  return result
 }
 
 export function postponeDate(

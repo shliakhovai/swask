@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { SyncClient } from '../lib/sync-client'
+import { CREDENTIAL_KEY, SyncClient } from '../lib/sync-client'
 import { taskStore } from './use-tasks'
 
 export const syncClient = new SyncClient(taskStore, {
@@ -23,6 +23,10 @@ export function useSyncLifecycle() {
         if (active) sync()
       })
     }
+    const credentialsChanged = (event: StorageEvent) => {
+      if (event.key !== CREDENTIAL_KEY && event.key !== null) return
+      if (syncClient.refreshCredentials()) sync()
+    }
     initialize()
     const unsubscribe = taskStore.subscribe(() => {
       if (taskStore.getSnapshot().document.pending.length === 0) return
@@ -34,6 +38,7 @@ export function useSyncLifecycle() {
       else sync()
     }, 30_000)
     window.addEventListener('online', initialize)
+    window.addEventListener('storage', credentialsChanged)
     window.addEventListener('offline', sync)
     window.addEventListener('focus', sync)
     document.addEventListener('visibilitychange', sync)
@@ -43,6 +48,7 @@ export function useSyncLifecycle() {
       clearTimeout(debounce)
       unsubscribe()
       window.removeEventListener('online', initialize)
+      window.removeEventListener('storage', credentialsChanged)
       window.removeEventListener('offline', sync)
       window.removeEventListener('focus', sync)
       document.removeEventListener('visibilitychange', sync)

@@ -9,6 +9,72 @@ import {
 // offline suite verifies the real worker; this suite isolates the sync transport.
 test.use({ serviceWorkers: 'block' })
 
+test('disconnects every open tab on the same device through storage events', async ({
+  page,
+  context,
+}) => {
+  const key = 'e2e-shared-device-workspace'
+  const spaceId = 'e2e-same-device'
+  await context.route('**/api/**', async (route) => {
+    const request = route.request()
+    if (new URL(request.url()).pathname === '/api/config') {
+      await route.fulfill({
+        json: {
+          syncEnabled: true,
+          spaceId,
+          pushEnabled: false,
+          pushPublicKey: null,
+        },
+      })
+      return
+    }
+    expect(request.headers().authorization).toBe(`Bearer ${key}`)
+    const body = request.postDataJSON() as {
+      spaceId: string
+      operations: TaskOperation[]
+    }
+    expect(body.spaceId).toBe(spaceId)
+    await route.fulfill({
+      json: {
+        spaceId,
+        tasks: [],
+        acknowledged: body.operations.map((operation) => operation.id),
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Налаштування' }).click()
+  await page.getByLabel('Ключ твого простору').fill(key)
+  await page
+    .getByRole('button', { name: 'Під’єднати пристрій', exact: true })
+    .click()
+  await expect(
+    page.getByText('Усі зміни синхронізовано.', { exact: true }),
+  ).toBeVisible()
+  const second = await context.newPage()
+  try {
+    await second.goto('/')
+    await second.getByRole('button', { name: 'Налаштування' }).click()
+    await expect(
+      second.getByRole('button', { name: 'Від’єднати пристрій', exact: true }),
+    ).toBeVisible()
+    await page
+      .getByRole('button', { name: 'Від’єднати пристрій', exact: true })
+      .click()
+    await expect(
+      second.getByRole('button', { name: 'Під’єднати пристрій', exact: true }),
+    ).toBeVisible()
+    await expect(
+      second.getByRole('button', { name: 'Синхронізувати', exact: true }),
+    ).toHaveCount(0)
+    expect(
+      await second.evaluate(() => localStorage.getItem('swask.sync.key.v1')),
+    ).toBe('')
+  } finally {
+    await second.close()
+  }
+})
+
 test('synchronizes two devices and replays an offline edit after reconnection', async ({
   page,
   context,
@@ -42,6 +108,7 @@ test('synchronizes two devices and replays an offline edit after reconnection', 
       return
     }
     const operations: TaskOperation[] = request.postDataJSON().operations
+    expect(request.postDataJSON().spaceId).toBe(config.spaceId)
     for (const operation of operations)
       if (!receipts.has(operation.id)) {
         tasks = applyOperation(tasks, operation)

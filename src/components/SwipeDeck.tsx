@@ -29,7 +29,12 @@ export function SwipeDeck({
   const [drag, setDrag] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const [postponing, setPostponing] = useState<Task | null>(null)
-  const pointer = useRef<{ id: number; x: number; y: number } | null>(null)
+  const pointer = useRef<{
+    id: number
+    taskId: string
+    x: number
+    y: number
+  } | null>(null)
   const remaining = remainingDeck(tasks, seen)
   const task = remaining[0]
   const direction = swipeDirection(drag.x, drag.y, 35)
@@ -57,7 +62,11 @@ export function SwipeDeck({
     }
   }
   function move(event: PointerEvent<HTMLElement>) {
-    if (pointer.current?.id !== event.pointerId) return
+    if (
+      pointer.current?.id !== event.pointerId ||
+      pointer.current.taskId !== task?.id
+    )
+      return
     setDrag({
       x: event.clientX - pointer.current.x,
       y: Math.min(event.clientY - pointer.current.y, 30),
@@ -69,10 +78,20 @@ export function SwipeDeck({
       event.clientX - pointer.current.x,
       event.clientY - pointer.current.y,
     )
+    const taskId = pointer.current.taskId
     pointer.current = null
     setDragging(false)
     setDrag({ x: 0, y: 0 })
-    if (action) act(action)
+    if (action && taskId === task?.id) act(action)
+  }
+  function choiceDate(days: 1 | 3 | 7): string | null {
+    if (!postponing) return null
+    try {
+      return postponeDate(postponing.deadline, days, current)
+    } catch (error) {
+      if (error instanceof RangeError) return null
+      throw error
+    }
   }
   return (
     <section className="swipe-mode" aria-label="Режим свайпів">
@@ -86,7 +105,6 @@ export function SwipeDeck({
             <div className="deck-back back-two" />
             <div className="deck-back back-one" />
             <article
-              key={task.id}
               className={`swipe-card ${dragging ? 'dragging' : ''} direction-${direction ?? 'none'}`}
               tabIndex={0}
               aria-label={`Картка задачі: ${task.title}`}
@@ -104,6 +122,7 @@ export function SwipeDeck({
                   return
                 pointer.current = {
                   id: event.pointerId,
+                  taskId: task.id,
                   x: event.clientX,
                   y: event.clientY,
                 }
@@ -250,47 +269,47 @@ export function SwipeDeck({
         <Modal title="Дай собі трохи часу" onClose={() => setPostponing(null)}>
           <p className="postpone-intro">{postponing.title}</p>
           <div className="postpone-options">
-            {([1, 3, 7] as const).map((days) => (
-              <button
-                key={days}
-                onClick={() => {
-                  const deadline = postponeDate(
-                    postponing.deadline,
-                    days,
-                    current,
-                  )
-                  if (taskStore.update(postponing.id, { deadline })) {
-                    const previous = postponing
-                    visit(previous.id)
-                    setPostponing(null)
-                    onFeedback(`Дедлайн: ${formatDate(deadline)}`, () => {
-                      if (
-                        taskStore.update(previous.id, {
-                          deadline: previous.deadline,
-                        })
-                      )
-                        revisit(previous.id)
-                    })
-                  }
-                }}
-              >
-                <span>
-                  {days === 1
-                    ? 'На добу'
-                    : days === 3
-                      ? 'На 3 дні'
-                      : 'На тиждень'}
-                </span>
-                <strong>
-                  {formatDate(postponeDate(postponing.deadline, days, current))}
-                </strong>
-                <Icon name="arrow-right" size={18} />
-              </button>
-            ))}
+            {([1, 3, 7] as const).map((days) => {
+              const deadline = choiceDate(days)
+              return (
+                <button
+                  key={days}
+                  disabled={disabled || deadline === null}
+                  onClick={() => {
+                    if (deadline === null) return
+                    if (taskStore.update(postponing.id, { deadline })) {
+                      const previous = postponing
+                      visit(previous.id)
+                      setPostponing(null)
+                      onFeedback(`Дедлайн: ${formatDate(deadline)}`, () => {
+                        if (
+                          taskStore.update(previous.id, {
+                            deadline: previous.deadline,
+                          })
+                        )
+                          revisit(previous.id)
+                      })
+                    }
+                  }}
+                >
+                  <span>
+                    {days === 1
+                      ? 'На добу'
+                      : days === 3
+                        ? 'На 3 дні'
+                        : 'На тиждень'}
+                  </span>
+                  <strong>
+                    {deadline ? formatDate(deadline) : 'За межами календаря'}
+                  </strong>
+                  <Icon name="arrow-right" size={18} />
+                </button>
+              )
+            })}
           </div>
           <p className="field-hint">
             Додаємо дні до поточного дедлайну або сьогодні, якщо дедлайн уже
-            минув.
+            минув. Гранична дата — 31.12.9999.
           </p>
         </Modal>
       )}

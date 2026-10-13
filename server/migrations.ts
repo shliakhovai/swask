@@ -15,9 +15,21 @@ export const TASK_MIGRATION = [
         task_id := (operation->>'taskId')::uuid;
         timestamp_text := to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
         IF operation->>'kind' = 'create' THEN
-          INSERT INTO swask_tasks(id, data) VALUES (task_id, (operation->'task') || jsonb_build_object('updatedAt', timestamp_text)) ON CONFLICT DO NOTHING;
+          INSERT INTO swask_tasks(id, data) VALUES (task_id, (operation->'task') || jsonb_build_object(
+            'updatedAt', timestamp_text,
+            'completedAt', CASE WHEN (operation->'task'->>'completed')::boolean
+              THEN coalesce(nullif(operation->'task'->'completedAt', 'null'::jsonb), operation->'task'->'updatedAt')
+              ELSE 'null'::jsonb END
+          )) ON CONFLICT DO NOTHING;
         ELSIF operation->>'kind' = 'update' THEN
-          UPDATE swask_tasks SET data = data || (operation->'changes') || jsonb_build_object('updatedAt', timestamp_text)
+          UPDATE swask_tasks SET data = data || (operation->'changes') || jsonb_build_object(
+            'updatedAt', timestamp_text,
+            'completedAt', CASE
+              WHEN operation->'changes'->'completed' = 'false'::jsonb THEN 'null'::jsonb
+              WHEN operation->'changes'->'completed' = 'true'::jsonb AND (data->>'completed')::boolean = false THEN operation->'at'
+              WHEN (data->>'completed')::boolean THEN coalesce(nullif(data->'completedAt', 'null'::jsonb), data->'updatedAt')
+              ELSE 'null'::jsonb END
+          )
           WHERE id = task_id AND (data->>'deleted')::boolean = false;
         ELSIF operation->>'kind' = 'delete' THEN
           UPDATE swask_tasks SET data = data || jsonb_build_object('deleted', true, 'updatedAt', timestamp_text) WHERE id = task_id;

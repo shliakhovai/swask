@@ -20,6 +20,13 @@ let state: PwaState = {
 }
 let prompt: InstallPrompt | null = null
 const listeners = new Set<() => void>()
+let updateRequested = false
+let reloading = false
+function reloadRequestedUpdate() {
+  if (!updateRequested || reloading) return
+  reloading = true
+  window.location.reload()
+}
 function update(changes: Partial<PwaState>) {
   state = { ...state, ...changes }
   for (const listener of listeners) listener()
@@ -27,6 +34,7 @@ function update(changes: Partial<PwaState>) {
 
 const updateWorker = registerSW({
   immediate: true,
+  onNeedReload: reloadRequestedUpdate,
   onOfflineReady: () => update({ offlineReady: true }),
   onNeedRefresh: () => update({ needRefresh: true }),
   onRegisterError: () =>
@@ -35,6 +43,10 @@ const updateWorker = registerSW({
         'Не вдалося підготувати офлайн-запуск. Перезавантаж застосунок із доступною мережею.',
     }),
 })
+navigator.serviceWorker?.addEventListener(
+  'controllerchange',
+  reloadRequestedUpdate,
+)
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault()
   prompt = event as InstallPrompt
@@ -53,7 +65,23 @@ export const pwa = {
       listeners.delete(listener)
     }
   },
-  update: () => updateWorker(true),
+  update: async () => {
+    const registration = await navigator.serviceWorker?.getRegistration()
+    updateRequested = true
+    if (!registration?.waiting) {
+      reloadRequestedUpdate()
+      return
+    }
+    try {
+      await updateWorker(true)
+    } catch {
+      updateRequested = false
+      update({
+        error:
+          'Не вдалося оновити swask. Спробуй ще раз після перезавантаження.',
+      })
+    }
+  },
   dismissUpdate: () => update({ needRefresh: false }),
   install: async () => {
     if (!prompt) return

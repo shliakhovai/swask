@@ -23,6 +23,9 @@ Production requires the Node server, not just static hosting. `DATABASE_URL` and
 - Deletion retains a tombstone and wins over later stale updates/creates. A deleted task is not restored automatically.
 - A response acknowledges only the submitted UUIDs. The client replays edits made during the request onto the received snapshot and persists it before dropping acknowledged operations.
 - A device binds to its first cloud workspace. It refuses to upload into a different database until the user handles its local copy; rotating database passwords does not change the binding.
+- Each sync request includes its expected `spaceId`. The server rejects a mismatch before touching the database, including when the same origin is redeployed while a tab has cached configuration.
+- Device key changes propagate through browser storage events. Disconnecting invalidates all open tabs and their in-flight responses; connecting in one tab also reconnects the others.
+- Completion records the original operation time in `completedAt`; server receipt timestamps and later field edits do not move older completions into today's count.
 
 Storage and migration details: `src/lib/task-store.ts`, `src/lib/sync-client.ts`, `server/migrations.ts`, `server/repository.ts`. PGlite tests execute the actual PostgreSQL migration and cover retries, field conflicts, tombstones, rollback and migration reruns. Neon connectivity must be verified after adding real credentials.
 
