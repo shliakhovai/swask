@@ -1,0 +1,27 @@
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 15px;
+  border: 1px solid #d8d2e5;
+  background: #f2eef8;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+.update-banner .icon-button {
+  margin-left: auto;
+}
+.setting-section {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.setting-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.setting-section p {
+  margin: 8px 0 14px;
+}
