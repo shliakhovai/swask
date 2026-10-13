@@ -19,6 +19,10 @@ export default tseslint.config(
   tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   {
+    files: ['**/*.{ts,tsx}'],
+    rules: { '@typescript-eslint/no-import-type-side-effects': 'error' },
+  },
+  {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {

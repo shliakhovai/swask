@@ -1,4 +1,4 @@
-import { type Task } from '../../src/lib/tasks'
+import type { Task } from '../../src/lib/tasks'
 
 export const sample: Task = {
   id: '00000000-0000-4000-8000-000000000001',

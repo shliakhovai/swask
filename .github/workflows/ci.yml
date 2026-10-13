@@ -50,3 +50,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker build --tag swask:ci .
+      - name: Verify production container
+        run: |
+          docker run --detach --name swask-ci -p 127.0.0.1:4173:4173 swask:ci
+          curl --fail --retry 10 --retry-connrefused --retry-all-errors --retry-delay 1 --max-time 5 http://127.0.0.1:4173/api/health
+          curl --fail http://127.0.0.1:4173/manifest.webmanifest
+      - if: failure()
+        run: docker logs swask-ci
+      - if: always()
+        run: docker rm --force swask-ci

@@ -6,7 +6,7 @@ import {
   swipeDirection,
   type SwipeDirection,
 } from '../lib/swipe'
-import { type Task } from '../lib/tasks'
+import type { Task } from '../lib/tasks'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 

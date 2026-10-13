@@ -31,7 +31,7 @@ test('opens swask in Ukrainian without horizontal overflow', async ({
 })
 test('creates, opens, edits, persists and completes a task', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Нова задача' }).click()
   const dialog = page.getByRole('dialog')
@@ -43,6 +43,14 @@ test('creates, opens, edits, persists and completes a task', async ({
   await dialog.getByLabel('Посилання').fill('https://example.com/task')
   await dialog.getByRole('button', { name: 'Додати задачу' }).click()
   await expect(dialog).not.toBeVisible()
+  await page
+    .getByRole('button', { name: 'Закрити повідомлення', exact: true })
+    .click()
+  if (['chromium', 'mobile'].includes(testInfo.project.name))
+    await page.screenshot({
+      path: `artifacts/swask-${testInfo.project.name === 'chromium' ? 'desktop' : 'mobile'}.png`,
+      fullPage: true,
+    })
   await page.reload()
   await page
     .getByRole('button', {

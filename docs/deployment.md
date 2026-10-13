@@ -25,7 +25,7 @@ The image runs as a non-root user, contains only production dependencies and kee
 
 ## CI/CD
 
-Every PR and push to `master` runs formatting, lint, type checks, unit/PostgreSQL tests, production build, Chromium/Firefox/WebKit/mobile browser journeys and a container build. GitHub actions are pinned to verified commit SHAs.
+Every PR and push to `master` runs formatting, lint, type checks, unit/PostgreSQL tests, production build, Chromium/Firefox/WebKit/mobile browser journeys and a container build/startup check. The runtime smoke test checks health and the PWA manifest using only production dependencies. GitHub actions are pinned to verified commit SHAs.
 
 After CI passes on `master`, the publish workflow builds that exact commit and pushes `latest` and commit-SHA tags to `ghcr.io/shliakhovai/swask`, using GitHub's scoped workflow token. No external server is deployed automatically. Point your hosting service at the image when ready. PR workflows cannot publish images.
 
