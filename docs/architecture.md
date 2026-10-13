@@ -17,3 +17,7 @@ Deadlines are optional `YYYY-MM-DD` calendar dates displayed using the user's Uk
 `TaskStore` owns a versioned `localStorage` document (`swask.tasks.v1`) containing tasks and pending operations. A write must succeed before React receives the new snapshot. Corrupted or unsupported documents are protected from writes and can be downloaded before an explicit reset. Other tabs refresh through storage events; every edit also reads the latest saved document. A task has a UUID, title, description, optional deadline, safe HTTP(S) link, completion flag, deletion tombstone and timestamps.
 
 The list always shows today, even when it is empty. Overdue tasks come first, future deadlines are ordered, and undated tasks come last. Completion is reversible. Deletion keeps a tombstone so a stale edit cannot recreate a task during future synchronization.
+
+## Swipe rounds
+
+The deck orders active tasks by deadline. Left completes, right skips until the next round without modifying the task, and up opens the 1/3/7-day deadline chooser. Choosing a date persists the update before advancing; cancelling leaves the card in place. A round ends when every active task has been visited, and restarting clears only the in-memory visited set. Touch/mouse pointer gestures, on-screen buttons and arrow keys share the same actions. Completion and deadline changes support undo.
