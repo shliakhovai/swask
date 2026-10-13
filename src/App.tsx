@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './components/Icon'
 import { PwaNotice } from './components/PwaNotice'
+import { ReminderBanner } from './components/ReminderBanner'
 import { Settings } from './components/Settings'
 import { SwipeDeck } from './components/SwipeDeck'
 import { TaskEditor } from './components/TaskEditor'
@@ -10,7 +11,7 @@ import { useToday } from './hooks/use-today'
 import { usePwa } from './hooks/use-pwa'
 import { useSync, useSyncLifecycle } from './hooks/use-sync'
 import { addDays, formatDate, today } from './lib/date'
-import { type Task } from './lib/tasks'
+import { isRecord, type Task } from './lib/tasks'
 
 interface Toast {
   message: string
@@ -29,6 +30,22 @@ export function App() {
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const open = (event: MessageEvent<unknown>) => {
+      if (
+        event.source !== navigator.serviceWorker.controller ||
+        !isRecord(event.data) ||
+        event.data.type !== 'OPEN_TASKS'
+      )
+        return
+      setMode('list')
+      setCompleted(false)
+      setDateFilter(null)
+    }
+    navigator.serviceWorker.addEventListener('message', open)
+    return () => navigator.serviceWorker.removeEventListener('message', open)
+  }, [])
   useEffect(() => {
     const update = () => setOnline(navigator.onLine)
     window.addEventListener('online', update)
@@ -116,6 +133,20 @@ export function App() {
         </div>
       </section>
       <PwaNotice busy={editor !== null || settings} />
+      <ReminderBanner
+        tasks={visible}
+        onReview={() => {
+          setMode('list')
+          setCompleted(false)
+          setDateFilter(null)
+          document.getElementById('tasks')?.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
+              .matches
+              ? 'instant'
+              : 'smooth',
+          })
+        }}
+      />
       {error && (
         <div className="error-banner" role="alert">
           {error}

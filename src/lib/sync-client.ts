@@ -156,6 +156,31 @@ export class SyncClient {
   offline() {
     if (this.key) this.update({ status: 'offline' })
   }
+  async pushSubscription(
+    method: 'POST' | 'DELETE',
+    value: unknown,
+  ): Promise<void> {
+    const config = this.state.config
+    if (!this.key || !this.state.connected || !config?.pushEnabled)
+      throw new Error('Спочатку під’єднай пристрій до свого простору.')
+    if (this.tasks.getSnapshot().document.scope !== config.spaceId)
+      throw new Error('Простір синхронізації не збігається.')
+    const result = await this.request('/api/push/subscription', {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${this.key}`,
+      },
+      body: JSON.stringify(value),
+    })
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      !('ok' in result) ||
+      result.ok !== true
+    )
+      throw new Error('Не вдалося підтвердити налаштування нагадувань.')
+  }
   sync(): Promise<boolean> {
     if (this.inFlight) return this.inFlight
     this.inFlight = this.runSync().finally(() => {

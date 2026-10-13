@@ -3,6 +3,7 @@ import { usePwa } from '../hooks/use-pwa'
 import { pwa } from '../lib/pwa'
 import { Modal } from './Modal'
 import { SyncSettings } from './SyncSettings'
+import { ReminderSettings } from './ReminderSettings'
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const { blocked } = useTasks()
@@ -11,6 +12,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
     <Modal title="Налаштування" onClose={onClose}>
       <div className="settings-content">
         <SyncSettings />
+        <ReminderSettings />
         <section className="setting-section">
           <h3>На твоєму пристрої</h3>
           <p>

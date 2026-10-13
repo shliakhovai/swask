@@ -22,4 +22,4 @@ Husky installs hooks during `npm install`. Pre-commit formats staged files, runs
 
 ## Git workflow
 
-One feature per `codex/<feature>` branch and PR. Keep commits small and meaningful. For dependent features, use stacked PRs targeting the previous branch; merge in order and retarget the next PR to `master`. The initial implementation follows this workflow. A PR must describe resulting behavior and its validation; secrets and local data are never committed.
+One feature per `codex/<feature>` branch and PR. Keep commits small and meaningful. For dependent features, use stacked PRs targeting the previous branch; merge in order and retarget the next PR to `master`. Use merge commits for the initial stack to preserve ancestry. If choosing squash/rebase merge, rebase the remaining stack onto the updated base before retargeting. The initial implementation follows this workflow. A PR must describe resulting behavior and its validation; secrets and local data are never committed.
