@@ -9,6 +9,9 @@ import { type ViteDevServer } from 'vite'
 import { handleApi, jsonResponse, MAX_BODY_BYTES } from './api.ts'
 import { readConfig } from './config.ts'
 import { createNeonRepository } from './repository.ts'
+import webPush from 'web-push'
+import { PushRepository, subscriptionId } from './push-repository.ts'
+import { ReminderWorker } from './reminder-worker.ts'
 
 const production = process.argv.includes('--production')
 const portArgument = process.argv.indexOf('--port')
@@ -24,6 +27,40 @@ const config = readConfig()
 const neon = config.databaseUrl
   ? createNeonRepository(config.databaseUrl)
   : null
+const push =
+  neon && config.publicConfig.pushEnabled
+    ? new PushRepository(neon.database)
+    : null
+if (push && config.vapid) {
+  try {
+    webPush.setVapidDetails(
+      config.vapid.subject,
+      config.vapid.publicKey,
+      config.vapid.privateKey,
+    )
+  } catch {
+    throw new Error(
+      'VAPID keys or subject are invalid. Run npm run setup or provide a matching key pair.',
+    )
+  }
+}
+const reminders = push
+  ? new ReminderWorker(push, async (subscription, payload) => {
+      await webPush.sendNotification(subscription, JSON.stringify(payload), {
+        TTL: 86_400,
+        timeout: 10_000,
+      })
+    })
+  : null
+const remind = () => {
+  void reminders
+    ?.tick()
+    .catch(() =>
+      console.error('Reminder check unavailable; retrying on the next tick.'),
+    )
+}
+const reminderTimer = reminders ? setInterval(remind, 60_000) : null
+if (reminders) remind()
 const root = resolve('dist')
 let vite: ViteDevServer | null = null
 const mime: Record<string, string> = {
@@ -113,10 +150,26 @@ const server = createServer(async (request, response) => {
         await handleApi(apiRequest, {
           config: config.publicConfig,
           syncKey: config.syncKey,
-          sync: (operations) => {
+          sync: async (operations) => {
             if (!neon) throw new Error('Synchronization is disabled')
-            return neon.repository.sync(operations)
+            const tasks = await neon.repository.sync(operations)
+            if (operations.length > 0) reminders?.invalidate()
+            return tasks
           },
+          ...(push
+            ? {
+                push: {
+                  save: async (preferences) => {
+                    await push.upsert(preferences)
+                    reminders?.invalidate(true)
+                  },
+                  remove: async (endpoint) => {
+                    await push.remove(subscriptionId(endpoint))
+                    reminders?.invalidate(true)
+                  },
+                },
+              }
+            : {}),
         }),
       )
       return
@@ -160,6 +213,7 @@ server.listen(port, host, () => {
   )
 })
 function stop() {
+  if (reminderTimer) clearInterval(reminderTimer)
   void vite?.close()
   server.close(() => process.exit(0))
   server.closeAllConnections()

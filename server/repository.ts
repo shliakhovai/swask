@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { isTask, type Task, type TaskOperation } from '../src/lib/tasks.ts'
 import { TASK_MIGRATION } from './migrations.ts'
+import { PUSH_MIGRATION } from './push-migrations.ts'
 
 export interface SqlDatabase {
   query(
@@ -29,7 +30,9 @@ export function createNeonRepository(url: string) {
   let migration: Promise<unknown> | null = null
   async function initialize() {
     migration ??= sql.transaction(
-      TASK_MIGRATION.map((statement) => sql.query(statement)),
+      [...TASK_MIGRATION, ...PUSH_MIGRATION].map((statement) =>
+        sql.query(statement),
+      ),
     )
     try {
       await migration
